@@ -45,21 +45,23 @@ REQUEST_PUZZLE_ACK      = 0xffff00d8
 #    struct spim_treasure treasures[50];
 #};
 .data
-
+treasure: .word 0:404
 #Insert whatever static memory you need here
 
 .text
 main:
 	# Insert code here
-  ill in your code here
     lw $s0 0($sp)
 
     li $t4 TIMER_INT_MASK
     or $t4 $t4 BONK_INT_MASK
+    or $t4 $t4 REQUEST_PUZZLE_INT_MASK
     or $t4 $t4 1
     mtc0 $t4 $12
 
     lw $t5 RIGHT_WALL_SENSOR($zero)  #oldState #should be 1
+
+
 
     li $a0 10
     sw $a0 0xffff0010($zero)
@@ -98,6 +100,7 @@ TURN:
 
   j loop
 
+.text
 
 # Kernel Text
 .kdata
@@ -143,11 +146,24 @@ interrupt_dispatch:            # Interrupt:
         j    done
 
 bonk_interrupt:
-        sw      $v0, BONK_ACK        # acknowledge interrupt
-        j       interrupt_dispatch    # see if other interrupts are waiting
+        sw $a1 0xffff0060($zero)
+        li $a1 180
+        sw $a1 ANGLE($zero)
+        sw $zero ANGLE_CONTROL($zero)
+
+        li $a0 10
+        sw $a0 0xffff0010($zero)
+
+
+          j       interrupt_dispatch
 
 request_puzzle_interrupt:
-	sw	$v0, REQUEST_PUZZLE_ACK 	#acknowledge interrupt
+	sw	$a1, REQUEST_PUZZLE_fACK 	#acknowledge interrupt
+  li $a0 0
+  sw  $a0 VELOCITY
+
+
+
 	j	interrupt_dispatch	 # see if other interrupts are waiting
 
 timer_interrupt:
