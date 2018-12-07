@@ -51,7 +51,52 @@ REQUEST_PUZZLE_ACK      = 0xffff00d8
 .text
 main:
 	# Insert code here
-    jr      $ra                         #ret
+  ill in your code here
+    lw $s0 0($sp)
+
+    li $t4 TIMER_INT_MASK
+    or $t4 $t4 BONK_INT_MASK
+    or $t4 $t4 1
+    mtc0 $t4 $12
+
+    lw $t5 RIGHT_WALL_SENSOR($zero)  #oldState #should be 1
+
+    li $a0 10
+    sw $a0 0xffff0010($zero)
+
+loop:
+    lw $s0 RIGHT_WALL_SENSOR   #curr sensor
+
+    bne $s0 $zero UPDATE
+    beq $t5 1 TURN
+    #check to see old is 1
+    #new is 0
+
+    move $t5 $s0
+
+    li $a0 10
+    sw $a0 0xffff0010($zero)
+
+    j loop
+
+UPDATE:
+  move $t5 $s0
+  j loop
+TURN:
+
+  li $a0 90
+
+  sw $a0 0xffff0014($zero)
+  sw $zero 0xffff0018($zero)
+
+  # lw $s0 RIGHT_WALL_SENSOR($zero)
+  # lw $t5 RIGHT_WALL_SENSOR($zero)
+
+  move $t5 $s0
+  li $a0 10
+  sw $a0 0xffff0010($zero)
+
+  j loop
 
 
 # Kernel Text
