@@ -14,7 +14,7 @@ BOT_Y                   = 0xffff0024
 
 TIMER                   = 0xffff001c
 
-RIGHT_WALL_SENSOR 		= 0xffff0054
+RIGHT_WALL_SENSOR 		  = 0xffff0054
 PICK_TREASURE           = 0xffff00e0
 TREASURE_MAP            = 0xffff0058
 MAZE_MAP                = 0xffff0050
