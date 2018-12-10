@@ -50,60 +50,101 @@ treasure: .word 0:404
 
 .text
 main:
-# 	# Insert code here
-#     lw $s0 0($sp)
-#
-#     li $t4 TIMER_INT_MASK
-#     or $t4 $t4 BONK_INT_MASK
-#     or $t4 $t4 REQUEST_PUZZLE_INT_MASK
-#     or $t4 $t4 1
-#     mtc0 $t4 $12
-#
-#     lw $t5 RIGHT_WALL_SENSOR($zero)  #oldState #should be 1
-#     la $t3 treasure
-#     sw $t3 TREASURE_MAP
-#
-#
-#     li $a0 10
-#     sw $a0 0xffff0010($zero)
-#
-# loop:
-#     lw $s0 RIGHT_WALL_SENSOR   #curr sensor
-#
-#     bne $s0 $zero UPDATE
-#     beq $t5 1 TURN
-#     #check to see old is 1
-#     #new is 0
-#
-#     move $t5 $s0
-#
-#     li $a0 10
-#     sw $a0 0xffff0010($zero)
-#
-#     j loop
-#
-# UPDATE:
-#   move $t5 $s0
-#   j loop
-# TURN:
-#
-#   li $a0 90
-#
-#   sw $a0 0xffff0014($zero)
-#   sw $zero 0xffff0018($zero)
-#
-#   # lw $s0 RIGHT_WALL_SENSOR($zero)
-#   # lw $t5 RIGHT_WALL_SENSOR($zero)
-#
-#   move $t5 $s0
-#   li $a0 10
-#   sw $a0 0xffff0010($zero)
-#
-#   j loop
+	# Insert code here
+    lw $s0 0($sp)
+
+    li $t4 TIMER_INT_MASK
+    or $t4 $t4 BONK_INT_MASK
+    or $t4 $t4 REQUEST_PUZZLE_INT_MASK
+    or $t4 $t4 1
+    mtc0 $t4 $12
+
+    lw $t5 RIGHT_WALL_SENSOR($zero)  #oldState #should be 1
+    la $t3 treasure
+    sw $t3 TREASURE_MAP($zero)
+
+
+
+    li $a0 10
+    sw $a0 0xffff0010($zero)            #set initial velocity to 10
+
+
+loop:
+    lw $s0 RIGHT_WALL_SENSOR   #curr sensor
+    bne $s0 $zero UPDATE        # go to Update if there is a wall
+    beq $t5 1 TURN          #turn if no wall
+    #check to see old is 1
+    #new is 0
+    move $t5 $s0
+
+    li $a0 10
+    sw $a0 0xffff0010($zero)
+    # j get_location
+
+    # j loop
+
+UPDATE:
+  move $t5 $s0
+  j loop
+  j get_location
+
+
+TURN:
+  li $a0 90
+  sw $a0 0xffff0014($zero)
+  sw $zero 0xffff0018($zero)
+
+  # lw $s0 RIGHT_WALL_SENSOR($zero)
+  # lw $t5 RIGHT_WALL_SENSOR($zero)
+
+  move $t5 $s0
+  li $a0 10
+  sw $a0 0xffff0010($zero)
+  j loop
 
 get_location:
-    lw  $t6, 0xffff0020($zero);
-    lw  $t7, 0xffff0024($zero);
+    li $a0 0
+    sw $a0 0xffff0010($zero)
+        
+    lw  $s1, 0xffff0020($zero)  #bot x
+    lw  $s2, 0xffff0024($zero)  #bot y
+
+    div $s1, $s1, 10
+    div $s2, $s2, 10
+
+scan_treasure_map:
+    lw $t0, 0($t3)          #$t0 is the size of the array
+    li $s3, 0               #i counter
+
+
+scan_loop:
+    bge  $s3, $t0, UPDATE    #break out of loop when done
+
+    mul $t2, $s3, 4
+    add  $t2, $t3, $t2
+
+      #go inside the array
+    lhu  $t4, 4($t2)                        #$t2 is the  array of treasures at i (offset by 4 because its the second part of struct)
+    beq  $t4, $s2, second_check             #if y is equal to i
+    j    incr
+
+
+second_check:
+    lhu   $t6, 6($t2)                        #load  short j
+    beq  $t6, $s1, stop                         #tell the bot to stop moving
+
+
+incr:
+    add  $s3, 1
+    j scan_loop
+
+
+
+stop:
+    li $a0 0
+    sw $a0 0xffff0010($zero)
+
+
 
 .text    #Suduko puzzle solution code
   .globl has_single_bit_set
