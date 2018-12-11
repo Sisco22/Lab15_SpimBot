@@ -114,7 +114,6 @@ loop:
     li      $s0, 1
     li      $a0 10
     sw      $a0 0xffff0010($zero)
-
     j       loop
 
 turn_1:
@@ -131,14 +130,12 @@ TURN:
 
 
 get_location:
-    li $a0 0
-    sw $a0 0xffff0010($zero)
+
 
     lw  $s1, 0xffff0020($zero)  #bot x
     lw  $s2, 0xffff0024($zero)  #bot y
-
-    div $s1, $s1, 10
-    div $s2, $s2, 10
+    div $a2, $s1, 10
+    div $a3, $s2, 10
 
 scan_treasure_map:
     lw $t0, 0($t3)          #$t0 is the size of the array
@@ -146,32 +143,146 @@ scan_treasure_map:
 
 
 scan_loop:
-    bge  $s3, $t0, loop  #break out of loop when done
+    jal binarySearch
+    beq $v0 1 pick_up
 
-    mul  $t2, $s3, 8
-    add  $t2, $t3, $t2
-
-      #go inside the array
-    lhu  $t4, 4($t2)                        #$t2 is the  array of treasures at i (offset by 4 because its the second part of struct)
-    beq  $t4, $s1, second_check             #if x is equal to i
-    j    incr
-
-
-second_check:
-    lhu   $t6, 6($t2)                           #load  short j
-    beq   $t6, $s2, pick_up                         #tell the bot to stop moving
-
-
-incr:
-    add  $s3, 1
-    j    scan_loop
-
+    j loop
 
 pick_up:
     sw      $a0, PICK_TREASURE($zero)
     li      $a0, 0
     sw      $a0, 0xffff0010($zero)
     j       loop
+
+binarySearch:                                         #implements a binary search to find treasure
+    sub	$sp, $sp, 36
+    sw	$ra, 0($sp)		#
+    sw	$s0, 4($sp)		#
+    sw	$s1, 8($sp)		#
+    sw	$s2, 12($sp)		#
+    sw	$s3, 16($sp)		#
+    sw	$s4, 20($sp)		#
+    sw	$s5, 24($sp)		#
+    sw	$s6, 28($sp)		#
+
+    sw $s7, 32($sp)
+
+    sub $t7 $t0 1
+    mul $t7 $t7 8
+    add $t7 $t3 $t7
+    lhu $s7 4($t7)      #gets largest possible x value in array
+
+    move $s3 $a2        #x to find the array
+    move $s4 $a3        #y to find in the array
+
+    #lhu $s7 4($t7)      #gets largest possible x value in array
+    la $t3 treasure
+    li $s7 50            #left
+    li $s2 0           #used to help with iteration
+    li $s1 0            #right
+    li $s0 50            #min Y
+
+recursive_step:                         #searches for X conditions to be met
+    blt  $s7, $s1, binaryFail  # i$s1 >=  then
+
+
+    sub $s0 $s7 $s1
+    div $t7 $s0 2
+    add $t7 $t7 $s1
+
+    mul $s5 $t7 8
+    add $t6 $t3 $s5
+    lhu $s5 4($t6)            #S5 is the current treasure_map index x
+
+    beq $s3 $s5 recursive_Y #ends sends recursion to find y state
+
+    bgt $s5 $s3 recursive_right #checks right side
+
+    blt $s5 $s3 recursive_left  #checks left side
+
+    li $v0 0
+    j recursive_done
+
+recursive_right:
+    add $s7 $t7 -1
+    j recursive_step
+
+recursive_left:
+    add $s1 $t7 1
+    j recursive_step
+
+recursive_Y:                           #iterate through Y
+    lhu $s6 6($t6)
+    li $v0 1
+    beq $s4 $s6 recursive_done #ends sends recursion to find y state
+
+
+    bgt $s6 $s4 setupRightLoop #checks right side
+
+
+    blt $s6 $s4 setupLeftLoop  #checks left side
+
+    li $v0 0
+    j recursive_done
+
+
+setupLeftLoop:
+    add $s2 $t7 -1
+    j loopLeft
+
+
+loopLeft:
+    mul $s5 $s2 8
+    add $t7 $t3 $s5
+    lhu $s5 4($t7)
+
+    bne $s5 $s3 binaryFail
+
+    lhu $s5 6($t7)
+
+    li $v0 1
+    beq $s5 $s4 recursive_done
+
+    add $s2 $s2 -1
+    j loopLeft
+
+
+setupRightLoop:
+    add $s2 $t7 1
+    j loopRight
+
+loopRight:
+    mul $s5 $s2 8
+    add $t7 $t3 $s5
+    lhu $s5 4($t7)
+
+    bne $s5 $s3 binaryFail
+
+    lhu $s5 6($t7)
+
+    li $v0 1
+    beq $s5 $s4 recursive_done
+
+    add $s2 $t7 1
+    j loopRight
+
+
+binaryFail:
+     li $v0 0
+     j recursive_done
+
+recursive_done:
+    lw	$ra, 0($sp)
+    lw	$s0, 4($sp)		#
+    lw	$s1, 8($sp)		#
+    lw	$s2, 12($sp)		#
+    lw	$s3, 16($sp)		#
+    lw	$s4, 20($sp)		#
+    lw	$s5, 24($sp)		#
+    lw	$s6, 28($sp)		#
+    lw $s7, 32($sp)
+    add $sp $sp 36
+    jr $ra
 
 
 
